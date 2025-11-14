@@ -1,68 +1,42 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { Link } from 'expo-router';
-import colors from '../../assets/colors';
-import logo from '../../assets/images/logo.png';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useEffect, useState } from 'react';
-import axios from 'axios'; // Import axios for API calls
+import axios from 'axios';
+import colors from '../../assets/colors';
+import logo from '../../assets/images/logo.png';
 import { readFromDatabase } from "../../firebaseConfig";
 
 export default function Page02() {
     const [soilData, setSoilData] = useState(null);
-    const id = 1; // Define id as a constant
+    const id = 1;
 
     const [selectedCrop, setSelectedCrop] = useState("not");
     const [nextCrop, setNextCrop] = useState("");
     const [recommendations, setRecommendations] = useState(["اختر المحصول أولاً للحصول على التوصيات المتعلقة به."]);
 
     useEffect(() => {
-        // Read soil data only once on component mount
         readFromDatabase("data")
-            .then((data) => {
-                setSoilData(data);
-            })
-            .catch((error) => {
-                console.error("Error reading data from database:", error);
-            });
-    }, [soilData]); // Empty dependency array ensures this only runs once.
+            .then((data) => setSoilData(data))
+            .catch((error) => console.error("Error reading data from database:", error));
+    }, []); // Run only once
 
     const handleAdviceClick = async () => {
         if (!soilData) return;
 
-        const payload = {
-            N: soilData.sensors_data.N,
-            P: soilData.sensors_data.P,
-            K: soilData.sensors_data.K,
-            temperature: soilData.sensors_data.temperature,
-            humidity: soilData.sensors_data.humidity,
-            ph: soilData.sensors_data.ph,
-            rainfall: soilData.sensors_data.rainfall,
-        };
+        const payload = { ...soilData.sensors_data };
 
         try {
             let response;
             let resp;
 
             if (selectedCrop === "not") {
-                // User has not planted yet => crop suggestion
-                response = await axios.post("http://localhost:8000/crop", payload);
-                setNextCrop(response.data.recommended_crop); // Show next crop suggestion based on soil data
+                response = await axios.post("http://119.8.163.161/crop", payload);
+                setNextCrop(response.data.recommended_crop);
             } else {
-                // User has planted => next crop suggestion
-                response = await axios.post("http://localhost:8000/next", {
-                    ...payload,
-                    previous_crop: selectedCrop,
-                });
-
-                // Fetch general recommendations for the selected crop
-                resp = await axios.post("http://localhost:8000/general", {
-                    ...payload,
-                    selected_crop: selectedCrop,
-                });
-
-                // Update recommendations based on the response
+                response = await axios.post("http://119.8.163.161/next", { ...payload, previous_crop: selectedCrop });
+                resp = await axios.post("http://119.8.163.161/general", { ...payload, selected_crop: selectedCrop });
                 setRecommendations(resp.data.recommendations);
-                setNextCrop(response.data.recommended_crop); // Show next crop suggestion based on the soil data and the selected crop
+                setNextCrop(response.data.recommended_next_crop);
             }
         } catch (error) {
             console.error("Failed to fetch recommendation:", error);
@@ -86,70 +60,52 @@ export default function Page02() {
         );
     }
 
-    const crops = [
-        "أرز", "البسلة الهندية", "الجرام الأسود", "الجوت", "الفاصوليا الحمراء", "الفاصوليا العثة",
+    const crops = ["أرز", "البسلة الهندية", "الجرام الأسود", "الجوت", "الفاصوليا الحمراء", "الفاصوليا العثة",
         "المونج", "بابايا", "برتقال", "بطاطا", "بطيخ", "تفاح", "جوز الهند", "حمص", "ذرة", "رمان",
-        "زيتون", "شعير", "شمام", "طماطم", "عدس", "عنب", "فول", "قمح", "قهوة", "مانجو", "موز",
-    ];
+        "زيتون", "شعير", "شمام", "طماطم", "عدس", "عنب", "فول", "قمح", "قهوة", "مانجو", "موز"];
 
     return (
-        <View style={styles.container}>
-            {/* Logo */}
-            <Image 
-                source={logo}
-                style={styles.logo}
-                resizeMode='contain'
-            />
-
-            {/* Subtitle */}
+        <ScrollView contentContainerStyle={styles.container}>
+            <Image source={logo} style={styles.logo} resizeMode='contain' />
             <Text style={styles.subtitle}>
                 احصل على توصيات محاصيل مخصصة بناءً على تربة أرضك ومناخها
             </Text>
 
-            {/* Recommendations */}
             <View style={styles.recommendations}>
                 <Text style={styles.title}>توصيات المحاصيل</Text>
                 {recommendations.map((rec, index) => (
-                    <Text key={index} style={styles.recommendationText}>
-                        {rec}
-                    </Text>
+                    <Text key={index} style={styles.recommendationText}>{rec}</Text>
                 ))}
             </View>
 
-            {/* Next Crop Picker */}
             <View style={styles.nextCrop}>
                 <Text style={styles.nextCropLabel}>المحصول السابق</Text>
-
                 <View style={styles.pickerContainer}>
                     <Picker
                         selectedValue={selectedCrop}
-                        onValueChange={(itemValue) => setSelectedCrop(itemValue)}
+                        onValueChange={setSelectedCrop}
                         style={styles.picker}
                         itemStyle={{ textAlign: 'right', color: colors.olive }}
                     >
                         <Picker.Item label="اختر محصولك" value="not" />
-                        {crops.map((crop, index) => (
-                            <Picker.Item label={crop} value={crop} key={index} />
-                        ))}
+                        {crops.map((crop, index) => <Picker.Item label={crop} value={crop} key={index} />)}
                     </Picker>
                 </View>
-
                 <Text style={styles.nextCropValue}>
                     محصولك القادم هو: {nextCrop || "لم يتم تحديد محصول بعد"}
                 </Text>
             </View>
 
-            {/* Button */}
             <TouchableOpacity style={styles.button} onPress={handleAdviceClick}>
                 <Text style={styles.buttonText}>احصل على التوصيات</Text>
             </TouchableOpacity>
-        </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         backgroundColor: colors.white,
         padding: 20,
         paddingVertical: 60,
@@ -165,8 +121,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: colors.olive,
         textAlign: 'center',
-        marginBottom: 120,
-        marginTop: 60,
+        marginVertical: 60,
+        marginBottom: 80,
     },
     title: {
         fontSize: 24,
@@ -207,7 +163,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginBottom: 120,
+        marginBottom: 80,
     },
     button: {
         backgroundColor: colors.green,

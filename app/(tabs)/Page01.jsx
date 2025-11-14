@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { Link } from 'expo-router';
 import colors from '../../assets/colors';
 import logo from '../../assets/images/logo.png';
@@ -6,11 +6,10 @@ import { useEffect, useState } from 'react';
 import { readFromDatabase } from "../../firebaseConfig";
 
 export default function Page01() {
-    const [soilData, setSoilData] = useState(null); // Initialize as null to indicate loading
-    const id = 1; // Define id as a constant
+    const [soilData, setSoilData] = useState(null);
+    const id = 1;
 
     useEffect(() => {
-        // Fetch data from the database only once when the component mounts
         const fetchData = async () => {
             try {
                 const data = await readFromDatabase('data');
@@ -19,11 +18,9 @@ export default function Page01() {
                 console.error("Error reading data from database:", error);
             }
         };
-
         fetchData();
-    }, [soilData]); // Empty dependency array ensures this runs only once
+    }, []); // Run only once
 
-    // Display loading message while data is being fetched
     if (!soilData) {
         return (
             <View style={styles.loadingContainer}>
@@ -32,7 +29,6 @@ export default function Page01() {
         );
     }
 
-    // Check if the device ID matches
     if (soilData.device_id !== Number(id)) {
         return (
             <View style={styles.errorContainer}>
@@ -41,76 +37,54 @@ export default function Page01() {
         );
     }
 
-    // Destructure sensor data from soilData
-    const { N, P, K, ph, temperature, humidity, rainfall ,soil_moisture } = soilData.sensors_data;
+    const { N, P, K, ph, temperature, humidity, rainfall, soil_moisture } = soilData.sensors_data;
 
     return (
-        <View style={styles.container}>
-            {/* Logo */}
+        <ScrollView contentContainerStyle={styles.container}>
             <Image 
                 source={logo}
                 style={styles.logo}
                 resizeMode='contain'
             />
 
-            {/* Subtitle */}
             <Text style={styles.subtitle}>
                 احصل على توصيات محاصيل مخصصة بناءً على تربة أرضك ومناخها
             </Text>
 
-            {/* Table */}
             <View style={styles.table}>
                 <View style={styles.row}>
                     <Text style={styles.header}>العنصر</Text>
                     <Text style={styles.header}>القيمة</Text>
                 </View>
-                <View style={styles.row}>
-                    <Text style={styles.cell}>N (kg/ha)</Text>
-                    <Text style={styles.cell}>{N}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.cell}>P (kg/ha)</Text>
-                    <Text style={styles.cell}>{P}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.cell}>K (kg/ha)</Text>
-                    <Text style={styles.cell}>{K}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.cell}>PH</Text>
-                    <Text style={styles.cell}>{ph}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.cell}>درجة الحرارة (C°)</Text>
-                    <Text style={styles.cell}>{temperature}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.cell}>الرطوبة (%)</Text>
-                    <Text style={styles.cell}>{humidity}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.cell}>تساقط الأمطار (mm)</Text>
-                    <Text style={styles.cell}>{rainfall}</Text>
-                </View>
-                <View style={styles.row}>
-                    <Text style={styles.cell}> رطوبة التربة(%)</Text>
-                    <Text style={styles.cell}>{soil_moisture}</Text>
-                </View>
+                {[
+                    ['N (kg/ha)', N],
+                    ['P (kg/ha)', P],
+                    ['K (kg/ha)', K],
+                    ['PH', ph],
+                    ['درجة الحرارة (C°)', temperature],
+                    ['الرطوبة (%)', humidity],
+                    ['تساقط الأمطار (mm)', rainfall],
+                    ['رطوبة التربة(%)', soil_moisture],
+                ].map(([label, value], index) => (
+                    <View key={index} style={styles.row}>
+                        <Text style={styles.cell}>{label}</Text>
+                        <Text style={styles.cell}>{value}</Text>
+                    </View>
+                ))}
             </View>
 
-            {/* Button */}
             <Link href="/Page02" asChild>
                 <TouchableOpacity style={styles.button}>
                     <Text style={styles.buttonText}>توصيات</Text>
                 </TouchableOpacity>
             </Link>
-        </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flexGrow: 1,
         backgroundColor: colors.white,
         padding: 20,
         paddingVertical: 60,
@@ -126,14 +100,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: colors.olive,
         textAlign: 'center',
+        marginVertical: 60,
         marginBottom: 120,
-        marginTop: 60,
     },
     table: {
         borderWidth: 1,
         borderColor: colors.green,
         borderRadius: 10,
-        marginBottom: 120,
+        marginBottom: 40,
     },
     row: {
         flexDirection: 'row',

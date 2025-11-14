@@ -4,8 +4,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import colors from '../../assets/colors';
 import logo from '../../assets/images/logo.png';
 import plant from '../../assets/images/plant.png';
-import { TextInput } from 'react-native-web';
+
 import { useState } from 'react';
+import { TextInput } from 'react-native';
 export default function IntroScreen() {
   const [id,setId] = useState('');
   const [isValid, setIsValid] = useState(false);
